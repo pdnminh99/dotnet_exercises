@@ -83,7 +83,7 @@ namespace ExerciseWeek5
         }
     }
 
-    class Book : IComparable<Book>
+    class Book : IComparable<Book>, IComparer<Book>
     {
         public string Title { get; set; }
 
@@ -124,6 +124,8 @@ Price: {Price}$.
 ";
 
         public int CompareTo(Book other) => Price.CompareTo(other.Price);
+
+        public int Compare(Book x, Book y) => x.CompareTo(y);
     }
 
     class BookManager
