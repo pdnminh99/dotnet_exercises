@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace ExerciseWeek5
 {
     delegate bool ShouldSwap<T>(T current, T next);
 
-    enum State 
-    { 
-        IN_STOCK, 
-        ALMOST_OUT, 
+    enum State
+    {
+        IN_STOCK,
+        ALMOST_OUT,
         OUT_OF_STOCK
     }
 
@@ -175,7 +174,7 @@ Price: {Price}$.
                         break;
                     case 3:
                         Console.WriteLine("----------");
-                        if (Books.Count == 0) 
+                        if (Books.Count == 0)
                             Console.Write("Cannot copy since books list is empty. Press any key to continue.");
                         else
                         {
