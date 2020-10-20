@@ -1,4 +1,10 @@
-﻿using System;
+﻿/**
+ * Họ và tên: Phạm Đỗ Nhật Minh
+ * MSSV: 217 2259
+ * Github: https://github.com/pdnminh99/dotnet_w05_exercise
+ */
+
+using System;
 using System.Collections.Generic;
 
 namespace ExerciseWeek5
@@ -17,36 +23,45 @@ namespace ExerciseWeek5
         public void BubbleSort(ShouldSwap<T> shouldSwap);
     }
 
+    class MutationEventPayload : EventArgs
+    {
+        public DateTime OccurrenceTime = DateTime.Now;
+    }
+
     class SuperList<T> : List<T>, ISortable<T> where T : IComparable<T>
     {
         public event EventHandler OnAdd;
 
+        public event EventHandler<MutationEventPayload> OnMutate;
+
         public static SuperList<T> New() => new SuperList<T>();
 
-        public void OnAddEmitted()
-        {
-            EventHandler handler = OnAdd;
-            if (handler != null) handler(this, EventArgs.Empty);
-        }
+        public void OnAddEmitted() => OnAdd?.Invoke(this, EventArgs.Empty);
+
+        public void OnMutateEmitted() => OnMutate?.Invoke(this, new MutationEventPayload());
 
         public void BubbleSort(ShouldSwap<T> shouldSwap)
         {
             T temp;
+            bool isMutated = false;
 
             for (int j = 0; j <= Count - 2; j++)
                 for (int i = 0; i <= Count - 2; i++)
                     if (shouldSwap(this[i], this[i + 1]))
                     {
+                        isMutated = true;
                         temp = this[i + 1];
                         this[i + 1] = this[i];
                         this[i] = temp;
                     }
+            if (isMutated) OnMutateEmitted();
         }
 
         public static SuperList<T> operator +(SuperList<T> a, SuperList<T> b)
         {
             foreach (var item in b) a.Add(item);
             a.OnAddEmitted();
+            a.OnMutateEmitted();
             return a;
         }
 
@@ -56,6 +71,8 @@ namespace ExerciseWeek5
 
             if (len == 0) return a;
             a.Add(a[len - 1]);
+            a.OnAddEmitted();
+            a.OnMutateEmitted();
             return a;
         }
 
@@ -119,7 +136,11 @@ Price: {Price}$.
 
         DateTime? LastMutation = null;
 
-        void Book_OnMutate(object sender, EventArgs state) => LastMutation = DateTime.Now;
+        void Book_OnMutate(object sender, EventArgs args)
+        {
+            var payload = (MutationEventPayload)args;
+            LastMutation = payload.OccurrenceTime;
+        }
 
         void Book_OnAdd(object sender, EventArgs args)
         {
@@ -127,16 +148,16 @@ Price: {Price}$.
             CurrentState = manager.Count switch
             {
                 0 => State.OUT_OF_STOCK,
-                5 => State.ALMOST_OUT,
-                10 => State.IN_STOCK,
+                1 => State.ALMOST_OUT,
+                2 => State.IN_STOCK,
                 _ => State.IN_STOCK
             };
-            Book_OnMutate(sender, args);
         }
 
         public void Run()
         {
             Books.OnAdd += Book_OnAdd;
+            Books.OnMutate += Book_OnMutate;
 
             while (true)
             {
