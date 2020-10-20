@@ -16,21 +16,16 @@ namespace ExerciseWeek5
 
         public void BubbleSort(ShouldSwap<T> shouldSwap)
         {
-            T temp, current, next;
+            T temp;
 
             for (int j = 0; j <= Count - 2; j++)
                 for (int i = 0; i <= Count - 2; i++)
-                {
-                    current = this[i];
-                    next = this[i + 1];
-
-                    if (shouldSwap(current, next))
+                    if (shouldSwap(this[i], this[i + 1]))
                     {
-                        temp = next;
-                        next = current;
-                        current = temp;
+                        temp = this[i + 1];
+                        this[i + 1] = this[i];
+                        this[i] = temp;
                     }
-                }
         }
 
         public static SuperList<T> operator +(SuperList<T> a, SuperList<T> b)
@@ -59,7 +54,6 @@ namespace ExerciseWeek5
 
     class Book : IComparable<Book>
     {
-
         public string Title { get; set; }
 
         public string Author { get; set; }
@@ -83,8 +77,9 @@ namespace ExerciseWeek5
             Console.Write("Enter Author: ");
             author = Console.ReadLine();
             Console.Write("Enter Price: ");
-            price = int.Parse(Console.ReadLine());
 
+            while (!int.TryParse(Console.ReadLine(), out price))
+                Console.Write("Invalid Price value. Please re-enter new number: ");
             return new Book(title, author, price);
         }
 
@@ -101,15 +96,11 @@ Price: {Price}$.
         public int CompareTo(Book other) => Price.CompareTo(other.Price);
     }
 
-    class Program
+    class BookManager
     {
-        static readonly SuperList<Book> books = SuperList<Book>.New();
+        SuperList<Book> books = SuperList<Book>.New();
 
-        static bool AscendingSort(Book a, Book b) => a > b;
-
-        static bool DescendingSort(Book a, Book b) => a > b;
-
-        static void Main(string[] args)
+        public void Run()
         {
             while (true)
             {
@@ -131,11 +122,29 @@ Price: {Price}$.
                         Console.ReadLine();
                         break;
                     case 3:
-                        books.BubbleSort(AscendingSort);
-                        Console.WriteLine("Books are sorted by Price. Press any key to continue.");
+                        Console.WriteLine("----------");
+                        if (books.Count == 0)
+                        {
+                            Console.Write("Cannot copy since books list is empty. Press any key to continue.");
+                        }
+                        else
+                        {
+                            books++;
+                            Console.Write("New book added successfully. Press any key to continue.");
+                        }
                         Console.ReadLine();
                         break;
                     case 4:
+                        books.BubbleSort(AscendingSort);
+                        Console.WriteLine("Books are ascending sorted by Price. Press any key to continue.");
+                        Console.ReadLine();
+                        break;
+                    case 5:
+                        books.BubbleSort(DescendingSort);
+                        Console.WriteLine("Books are ascending sorted by Price. Press any key to continue.");
+                        Console.ReadLine();
+                        break;
+                    case 6:
                         Console.WriteLine("Are you sure? (Y): Yes; (N): No;");
                         Console.Write("Enter: ");
                         if (Console.ReadLine().Trim().ToUpper() == "N") continue;
@@ -145,24 +154,37 @@ Price: {Price}$.
                         Console.ReadLine();
                         break;
                 }
-                if (choice == 4) break;
+                if (choice == 6) break;
             }
         }
 
-        static void PrintMenu()
+        bool AscendingSort(Book a, Book b) => a > b;
+
+        bool DescendingSort(Book a, Book b) => a > b;
+
+        void PrintMenu()
         {
             Console.WriteLine(@"
 1) Print Books
 2) Add Books
-3) Sort
-4) Exit
+3) Copy Last Book
+4) Ascending Sort
+5) Descending Sort
+6) Exit
 ");
         }
 
-        static int GetChoice()
+        int GetChoice()
         {
             Console.Write("Your choice is: ");
             return int.Parse(Console.ReadLine());
         }
+    }
+
+    class Program
+    {
+        static readonly BookManager manager = new BookManager();
+
+        static void Main(string[] args) => manager.Run();
     }
 }
