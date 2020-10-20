@@ -87,8 +87,7 @@ namespace ExerciseWeek5
 
         public static bool operator <(Book a, Book b) => a.CompareTo(b) < 0;
 
-        public override string ToString() => $@"\
-Title: {Title},
+        public override string ToString() => $@"Title: {Title},
 Author: {Author},
 Price: {Price}$.
 ";
@@ -116,9 +115,22 @@ Price: {Price}$.
                         Console.ReadLine();
                         break;
                     case 2:
-                        books.Add(Book.Create());
-                        Console.WriteLine("----------");
-                        Console.Write("New book added successfully. Press any key to continue.");
+                        bool isContinue = false;
+                        SuperList<Book> newBooks = SuperList<Book>.New();
+                        do
+                        {
+                            Console.WriteLine("------------------------");
+                            Console.WriteLine("Please enter book info.");
+                            newBooks.Add(Book.Create());
+                            Console.WriteLine("----------");
+                            Console.Write("New book added successfully.");
+                            Console.WriteLine("Do you want to continue adding new book? (Y): Yes; (N): No;");
+                            Console.Write("Your choice: ");
+                            isContinue = Console.ReadLine().Trim().ToUpper() == "Y";
+                        } while (isContinue);
+
+                        books += newBooks;
+                        Console.Write("Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 3:
@@ -147,8 +159,8 @@ Price: {Price}$.
                     case 6:
                         Console.WriteLine("Are you sure? (Y): Yes; (N): No;");
                         Console.Write("Enter: ");
-                        if (Console.ReadLine().Trim().ToUpper() == "N") continue;
-                        break;
+                        if (Console.ReadLine().Trim().ToUpper() == "Y") break;
+                        continue;
                     default:
                         Console.WriteLine("Unknown option, please try again.");
                         Console.ReadLine();
@@ -160,7 +172,7 @@ Price: {Price}$.
 
         bool AscendingSort(Book a, Book b) => a > b;
 
-        bool DescendingSort(Book a, Book b) => a > b;
+        bool DescendingSort(Book a, Book b) => a < b;
 
         void PrintMenu()
         {
