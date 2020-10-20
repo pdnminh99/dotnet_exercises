@@ -1,9 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace ExerciseWeek5
 {
     delegate bool ShouldSwap<T>(T current, T next);
+
+    enum State 
+    { 
+        IN_STOCK, 
+        ALMOST_OUT, 
+        OUT_OF_STOCK
+    }
 
     interface ISortable<T> where T : IComparable<T>
     {
@@ -12,7 +20,15 @@ namespace ExerciseWeek5
 
     class SuperList<T> : List<T>, ISortable<T> where T : IComparable<T>
     {
+        public event EventHandler OnAdd;
+
         public static SuperList<T> New() => new SuperList<T>();
+
+        public void OnAddEmitted()
+        {
+            EventHandler handler = OnAdd;
+            if (handler != null) handler(this, EventArgs.Empty);
+        }
 
         public void BubbleSort(ShouldSwap<T> shouldSwap)
         {
@@ -31,6 +47,7 @@ namespace ExerciseWeek5
         public static SuperList<T> operator +(SuperList<T> a, SuperList<T> b)
         {
             foreach (var item in b) a.Add(item);
+            a.OnAddEmitted();
             return a;
         }
 
@@ -97,19 +114,42 @@ Price: {Price}$.
 
     class BookManager
     {
-        SuperList<Book> books = SuperList<Book>.New();
+        SuperList<Book> Books = SuperList<Book>.New();
+
+        State CurrentState = State.OUT_OF_STOCK;
+
+        DateTime? LastMutation = null;
+
+        void Book_OnMutate(object sender, EventArgs state) => LastMutation = DateTime.Now;
+
+        void Book_OnAdd(object sender, EventArgs args)
+        {
+            SuperList<Book> manager = (SuperList<Book>)sender;
+            CurrentState = manager.Count switch
+            {
+                0 => State.OUT_OF_STOCK,
+                5 => State.ALMOST_OUT,
+                10 => State.IN_STOCK,
+                _ => State.IN_STOCK
+            };
+            Book_OnMutate(sender, args);
+        }
 
         public void Run()
         {
+            Books.OnAdd += Book_OnAdd;
+
             while (true)
             {
                 Console.Clear();
+                PrintState();
+                Console.WriteLine("---------");
                 PrintMenu();
                 int choice = GetChoice();
                 switch (choice)
                 {
                     case 1:
-                        Console.WriteLine(books.ToString());
+                        Console.WriteLine(Books);
                         Console.WriteLine("----------------");
                         Console.Write("Press any key to continue.");
                         Console.ReadLine();
@@ -129,30 +169,28 @@ Price: {Price}$.
                             isContinue = Console.ReadLine().Trim().ToUpper() == "Y";
                         } while (isContinue);
 
-                        books += newBooks;
+                        Books += newBooks;
                         Console.Write("Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 3:
                         Console.WriteLine("----------");
-                        if (books.Count == 0)
-                        {
+                        if (Books.Count == 0) 
                             Console.Write("Cannot copy since books list is empty. Press any key to continue.");
-                        }
                         else
                         {
-                            books++;
+                            Books++;
                             Console.Write("New book added successfully. Press any key to continue.");
                         }
                         Console.ReadLine();
                         break;
                     case 4:
-                        books.BubbleSort(AscendingSort);
+                        Books.BubbleSort(AscendingSort);
                         Console.WriteLine("Books are ascending sorted by Price. Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 5:
-                        books.BubbleSort(DescendingSort);
+                        Books.BubbleSort(DescendingSort);
                         Console.WriteLine("Books are ascending sorted by Price. Press any key to continue.");
                         Console.ReadLine();
                         break;
@@ -173,6 +211,12 @@ Price: {Price}$.
         bool AscendingSort(Book a, Book b) => a > b;
 
         bool DescendingSort(Book a, Book b) => a < b;
+
+        void PrintState()
+        {
+            Console.WriteLine($"Current State: {CurrentState.ToString().Replace('_', ' ')}");
+            Console.WriteLine($"Last edit is: {LastMutation?.ToString() ?? "NULL"}");
+        }
 
         void PrintMenu()
         {
