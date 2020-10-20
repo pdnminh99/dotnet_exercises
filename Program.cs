@@ -244,8 +244,12 @@ Price: {Price}$.
 
         int GetChoice()
         {
+            int choice;
+
             Console.Write("Your choice is: ");
-            return int.Parse(Console.ReadLine());
+            while (!int.TryParse(Console.ReadLine(), out choice))
+                Console.Write("Invalid Choice value. Please re-enter new number: ");
+            return choice;
         }
     }
 
