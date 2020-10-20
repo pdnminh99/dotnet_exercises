@@ -34,8 +34,6 @@ namespace ExerciseWeek5
 
         public event EventHandler<MutationEventPayload> OnMutate;
 
-        public static SuperList<T> New() => new SuperList<T>();
-
         public void OnAddEmitted() => OnAdd?.Invoke(this, EventArgs.Empty);
 
         public void OnMutateEmitted() => OnMutate?.Invoke(this, new MutationEventPayload());
@@ -130,28 +128,22 @@ Price: {Price}$.
 
     class BookManager
     {
-        SuperList<Book> Books = SuperList<Book>.New();
+        SuperList<Book> Books = new SuperList<Book>();
 
         State CurrentState = State.OUT_OF_STOCK;
 
         DateTime? LastMutation = null;
 
-        void Book_OnMutate(object sender, EventArgs args)
-        {
-            var payload = (MutationEventPayload)args;
-            LastMutation = payload.OccurrenceTime;
-        }
+        void Book_OnMutate(object sender, EventArgs args) => LastMutation = ((MutationEventPayload)args).OccurrenceTime;
 
         void Book_OnAdd(object sender, EventArgs args)
         {
             SuperList<Book> manager = (SuperList<Book>)sender;
-            CurrentState = manager.Count switch
-            {
-                0 => State.OUT_OF_STOCK,
-                1 => State.ALMOST_OUT,
-                2 => State.IN_STOCK,
-                _ => State.IN_STOCK
-            };
+            int count = manager.Count;
+
+            if (count > 10) CurrentState = State.IN_STOCK;
+            else if (count > 0) CurrentState = State.ALMOST_OUT;
+            else CurrentState = State.OUT_OF_STOCK;
         }
 
         public void Run()
@@ -176,7 +168,7 @@ Price: {Price}$.
                         break;
                     case 2:
                         bool isContinue = false;
-                        SuperList<Book> newBooks = SuperList<Book>.New();
+                        SuperList<Book> newBooks = new SuperList<Book>();
                         do
                         {
                             Console.WriteLine("------------------------");
@@ -259,8 +251,6 @@ Price: {Price}$.
 
     class Program
     {
-        static readonly BookManager manager = new BookManager();
-
-        static void Main(string[] args) => manager.Run();
+        static void Main(string[] args) => (new BookManager()).Run();
     }
 }
