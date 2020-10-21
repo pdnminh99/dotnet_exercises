@@ -155,6 +155,7 @@ Price: {Price}$.
 
             while (true)
             {
+                Week6.Run();
                 Console.Clear();
                 PrintState();
                 Console.WriteLine("---------");
