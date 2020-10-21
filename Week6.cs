@@ -106,15 +106,27 @@ namespace ExerciseWeek5
 
     class Week6
     {
-        public static void Run()
+        // Enclosing all Shape objects allocation in separate scope
+        static void FirstExercise()
         {
-            // Exercise 1
+            // Begin scope
             var r = new Rectangle(3, 4.5);
             WriteLine($"Rectangle H: {r.Height}, W: {r.Width}, Area: {r.Area}, Circumference: {r.Circumference}");
             var s = new Square(5);
             WriteLine($"Square S: {s.Side}, Area: {s.Area}, Circumference: {s.Circumference}");
             var c = new Circle(2.5);
             WriteLine($"Circle R: {c.Radius}, D: {c.Diameter}, Area: {c.Area}, Circumference: {c.Circumference}");
+        }
+
+        public static void Run()
+        {
+            FirstExercise();
+            WriteLine("--------------------------------------------------");
+            // End scope, try invoking GC to clean up.
+            GC.Collect();
+
+            // Wait until GC finish cleaning up.
+            GC.WaitForPendingFinalizers();
 
             WriteLine("--------------------------------------------------");
             // Exercise 2.1
