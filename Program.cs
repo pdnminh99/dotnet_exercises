@@ -36,6 +36,14 @@ namespace DotnetExercises
 
         public event EventHandler<MutationEventPayload> OnMutate;
 
+        public SuperList()
+        {
+        }
+
+        public SuperList(T[] items) : base(items)
+        {
+        }
+
         private void OnAddEmitted() => OnAdd?.Invoke(this, EventArgs.Empty);
 
         private void OnMutateEmitted() => OnMutate?.Invoke(this, new MutationEventPayload());
@@ -131,10 +139,11 @@ namespace DotnetExercises
 
         public static bool operator <(Book a, Book b) => a.CompareTo(b) < 0;
 
-        public override string ToString() => $@"Title: {Title},
+        public override string ToString() => $@"
+Title: {Title},
 Author: {Author},
 Publisher: {Publisher},
-Price: {Price}$.
+Price: {$"{Price:n0}"}$.
 ";
 
         public int CompareTo(Book other) => Price.CompareTo(other.Price);
@@ -225,8 +234,8 @@ Price: {Price}$.
                         }
 
                         fs = File.OpenRead(filePath);
-                        if (_binaryFormatter.Deserialize(fs) is SuperList<Book> booksFromBinary)
-                            _books = booksFromBinary;
+                        if (_binaryFormatter.Deserialize(fs) is Book[] booksFromBinary)
+                            _books = new SuperList<Book>(booksFromBinary);
                         fs.Close();
                         break;
                     case 4:
@@ -305,19 +314,19 @@ Price: {Price}$.
                     case 6:
                         byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(_books, _serializerOptions);
                         File.WriteAllBytes($"{_currentDir}\\{_fileName}.json", serialized);
-                        Console.WriteLine("Books are saved in `books.json`. Press any key to continue.");
+                        Console.WriteLine($"Books are saved in `{_fileName}.json`. Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 7:
                         fs = File.Open($"{_currentDir}\\{_fileName}.xml", FileMode.Create);
                         _xmlSerializer.Serialize(fs, _books);
-                        Console.WriteLine("Books are saved in `books.xml`. Press any key to continue.");
+                        Console.WriteLine($"Books are saved in `{_fileName}.xml`. Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 8:
                         fs = File.Open($"{_currentDir}\\{_fileName}.bin", FileMode.Create);
-                        _binaryFormatter.Serialize(fs, _books);
-                        Console.WriteLine("Books are saved in `books.bin`. Press any key to continue.");
+                        _binaryFormatter.Serialize(fs, _books.ToArray());
+                        Console.WriteLine($"Books are saved in `{_fileName}.bin`. Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 9:
