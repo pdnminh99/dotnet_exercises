@@ -29,6 +29,7 @@ namespace DotnetExercises
     }
 
     [Serializable]
+    [XmlRoot(ElementName = "Books")]
     public class SuperList<T> : List<T>, ISortable<T> where T : IComparable<T>
     {
         public event EventHandler OnAdd;
@@ -88,13 +89,13 @@ namespace DotnetExercises
     [Serializable]
     public class Book : IComparable<Book>, IComparer<Book>
     {
-        public string Title { get; }
+        public string Title { get; set; }
 
-        public string Author { get; }
+        public string Author { get; set; }
 
-        public string Publisher { get; }
+        public string Publisher { get; set; }
 
-        public int Price { get; }
+        public int Price { get; set; }
 
         public Book()
         {
@@ -157,6 +158,13 @@ Price: {Price}$.
 
         private readonly string _currentDir = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
 
+        private readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true,
+            IgnoreNullValues = true
+        };
+
         void Book_OnMutate(object sender, EventArgs args) =>
             _lastMutation = ((MutationEventPayload) args).OccurrenceTime;
 
@@ -168,23 +176,6 @@ Price: {Price}$.
             if (count > 10) _currentState = State.InStock;
             else if (count > 0) _currentState = State.AlmostOut;
             else _currentState = State.OutOfStock;
-        }
-
-        private class Payload<T>
-        {
-            public List<T> Raw { get; set; }
-
-            public DateTime DateTime { get; set; }
-
-            public Payload()
-            {
-            }
-
-            public Payload(List<T> raw, DateTime? dateTime)
-            {
-                DateTime = dateTime ?? DateTime.Now;
-                Raw = raw;
-            }
         }
 
         public void Run()
@@ -209,8 +200,8 @@ Price: {Price}$.
                             break;
                         }
 
-                        string json = File.ReadAllText(filePath);
-                        _books = JsonSerializer.Deserialize<SuperList<Book>>(json);
+                        var jsonUtf8Reader = new Utf8JsonReader(File.ReadAllBytes(filePath));
+                        _books = JsonSerializer.Deserialize<SuperList<Book>>(ref jsonUtf8Reader, _serializerOptions);
                         break;
                     case 2:
                         filePath = $"{_currentDir}\\{_fileName}.xml";
@@ -312,19 +303,19 @@ Price: {Price}$.
                         Console.ReadLine();
                         break;
                     case 6:
-                        string serialized = JsonSerializer.Serialize(_books);
-                        File.WriteAllText($"{_currentDir}\\{_fileName}.json", serialized);
+                        byte[] serialized = JsonSerializer.SerializeToUtf8Bytes(_books, _serializerOptions);
+                        File.WriteAllBytes($"{_currentDir}\\{_fileName}.json", serialized);
                         Console.WriteLine("Books are saved in `books.json`. Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 7:
-                        fs = File.OpenWrite($"{_currentDir}\\{_fileName}.xml");
+                        fs = File.Open($"{_currentDir}\\{_fileName}.xml", FileMode.Create);
                         _xmlSerializer.Serialize(fs, _books);
                         Console.WriteLine("Books are saved in `books.xml`. Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 8:
-                        fs = File.OpenWrite($"{_currentDir}\\{_fileName}.bin");
+                        fs = File.Open($"{_currentDir}\\{_fileName}.bin", FileMode.Create);
                         _binaryFormatter.Serialize(fs, _books);
                         Console.WriteLine("Books are saved in `books.bin`. Press any key to continue.");
                         Console.ReadLine();
