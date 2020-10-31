@@ -2,3 +2,8 @@
 bin
 obj
 .vs
+.idea
+
+books.json
+books.xml
+books.bin

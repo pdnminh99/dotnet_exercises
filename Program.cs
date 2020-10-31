@@ -1,21 +1,21 @@
-﻿/**
- * Họ và tên: Phạm Đỗ Nhật Minh
- * MSSV: 217 2259
- * Github: https://github.com/pdnminh99/dotnet_w05_exercise
- */
-
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text.Json;
+using System.Xml.Serialization;
 
-namespace ExerciseWeek5
+namespace DotnetExercises
 {
-    delegate bool ShouldSwap<T>(T current, T next);
+    public delegate bool ShouldSwap<T>(T current, T next);
 
     enum State
     {
-        IN_STOCK,
-        ALMOST_OUT,
-        OUT_OF_STOCK
+        InStock,
+        AlmostOut,
+        OutOfStock
     }
 
     interface ISortable<T> where T : IComparable<T>
@@ -23,20 +23,21 @@ namespace ExerciseWeek5
         public void BubbleSort(ShouldSwap<T> shouldSwap);
     }
 
-    class MutationEventPayload : EventArgs
+    public class MutationEventPayload : EventArgs
     {
         public DateTime OccurrenceTime = DateTime.Now;
     }
 
-    class SuperList<T> : List<T>, ISortable<T> where T : IComparable<T>
+    [Serializable]
+    public class SuperList<T> : List<T>, ISortable<T> where T : IComparable<T>
     {
         public event EventHandler OnAdd;
 
         public event EventHandler<MutationEventPayload> OnMutate;
 
-        public void OnAddEmitted() => OnAdd?.Invoke(this, EventArgs.Empty);
+        private void OnAddEmitted() => OnAdd?.Invoke(this, EventArgs.Empty);
 
-        public void OnMutateEmitted() => OnMutate?.Invoke(this, new MutationEventPayload());
+        private void OnMutateEmitted() => OnMutate?.Invoke(this, new MutationEventPayload());
 
         public void BubbleSort(ShouldSwap<T> shouldSwap)
         {
@@ -44,14 +45,15 @@ namespace ExerciseWeek5
             bool isMutated = false;
 
             for (int j = 0; j <= Count - 2; j++)
-                for (int i = 0; i <= Count - 2; i++)
-                    if (shouldSwap(this[i], this[i + 1]))
-                    {
-                        isMutated = true;
-                        temp = this[i + 1];
-                        this[i + 1] = this[i];
-                        this[i] = temp;
-                    }
+            for (int i = 0; i <= Count - 2; i++)
+                if (shouldSwap(this[i], this[i + 1]))
+                {
+                    isMutated = true;
+                    temp = this[i + 1];
+                    this[i + 1] = this[i];
+                    this[i] = temp;
+                }
+
             if (isMutated) OnMutateEmitted();
         }
 
@@ -83,35 +85,45 @@ namespace ExerciseWeek5
         }
     }
 
-    class Book : IComparable<Book>, IComparer<Book>
+    [Serializable]
+    public class Book : IComparable<Book>, IComparer<Book>
     {
-        public string Title { get; set; }
+        public string Title { get; }
 
-        public string Author { get; set; }
+        public string Author { get; }
 
-        public int Price { get; set; }
+        public string Publisher { get; }
 
-        public Book(string title, string author, int price)
+        public int Price { get; }
+
+        public Book()
+        {
+        }
+
+        public Book(string title, string author, string publisher, int price)
         {
             Title = title;
             Author = author;
+            Publisher = publisher;
             Price = price;
         }
 
         public static Book Create()
         {
-            string title, author;
+            string title, author, publisher;
             int price;
 
             Console.Write("Enter Title: ");
             title = Console.ReadLine();
             Console.Write("Enter Author: ");
             author = Console.ReadLine();
+            Console.Write("Enter Publisher: ");
+            publisher = Console.ReadLine();
             Console.Write("Enter Price: ");
 
             while (!int.TryParse(Console.ReadLine(), out price))
                 Console.Write("Invalid Price value. Please re-enter new number: ");
-            return new Book(title, author, price);
+            return new Book(title, author, publisher, price);
         }
 
         public static bool operator >(Book a, Book b) => a.CompareTo(b) > 0;
@@ -120,6 +132,7 @@ namespace ExerciseWeek5
 
         public override string ToString() => $@"Title: {Title},
 Author: {Author},
+Publisher: {Publisher},
 Price: {Price}$.
 ";
 
@@ -130,48 +143,136 @@ Price: {Price}$.
 
     class BookManager
     {
-        SuperList<Book> Books = new SuperList<Book>();
+        private SuperList<Book> _books = new SuperList<Book>();
 
-        State CurrentState = State.OUT_OF_STOCK;
+        private State _currentState = State.OutOfStock;
 
-        DateTime? LastMutation = null;
+        private DateTime? _lastMutation;
 
-        void Book_OnMutate(object sender, EventArgs args) => LastMutation = ((MutationEventPayload)args).OccurrenceTime;
+        private readonly XmlSerializer _xmlSerializer = new XmlSerializer(typeof(SuperList<Book>));
+
+        private readonly IFormatter _binaryFormatter = new BinaryFormatter();
+
+        private readonly string _fileName = "books";
+
+        private readonly string _currentDir = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
+
+        void Book_OnMutate(object sender, EventArgs args) =>
+            _lastMutation = ((MutationEventPayload) args).OccurrenceTime;
 
         void Book_OnAdd(object sender, EventArgs args)
         {
-            SuperList<Book> manager = (SuperList<Book>)sender;
-            int count = manager.Count;
+            var manager = sender as SuperList<Book>;
+            int count = manager?.Count ?? 0;
 
-            if (count > 10) CurrentState = State.IN_STOCK;
-            else if (count > 0) CurrentState = State.ALMOST_OUT;
-            else CurrentState = State.OUT_OF_STOCK;
+            if (count > 10) _currentState = State.InStock;
+            else if (count > 0) _currentState = State.AlmostOut;
+            else _currentState = State.OutOfStock;
+        }
+
+        private class Payload<T>
+        {
+            public List<T> Raw { get; set; }
+
+            public DateTime DateTime { get; set; }
+
+            public Payload()
+            {
+            }
+
+            public Payload(List<T> raw, DateTime? dateTime)
+            {
+                DateTime = dateTime ?? DateTime.Now;
+                Raw = raw;
+            }
         }
 
         public void Run()
         {
-            Books.OnAdd += Book_OnAdd;
-            Books.OnMutate += Book_OnMutate;
+            // Try loading data
+            PrintLoadMain();
+            int choice;
+            FileStream fs;
 
-            while (true)
+            do
             {
-                Week6.Run();
-                Console.Clear();
-                PrintState();
-                Console.WriteLine("---------");
-                PrintMenu();
-                int choice = GetChoice();
+                choice = GetChoice();
+                string filePath;
+
                 switch (choice)
                 {
                     case 1:
-                        Console.WriteLine(Books);
+                        filePath = $"{_currentDir}\\{_fileName}.json";
+                        if (!File.Exists(filePath))
+                        {
+                            Console.WriteLine($"File {filePath} does not exist.");
+                            break;
+                        }
+
+                        string json = File.ReadAllText(filePath);
+                        _books = JsonSerializer.Deserialize<SuperList<Book>>(json);
+                        break;
+                    case 2:
+                        filePath = $"{_currentDir}\\{_fileName}.xml";
+                        if (!File.Exists(filePath))
+                        {
+                            Console.WriteLine($"File {filePath} does not exist.");
+                            break;
+                        }
+
+                        fs = File.OpenRead(filePath);
+                        if (_xmlSerializer.Deserialize(fs) is SuperList<Book> booksFromXml)
+                            _books = booksFromXml;
+                        fs.Close();
+                        break;
+                    case 3:
+                        filePath = $"{_currentDir}\\{_fileName}.bin";
+                        if (!File.Exists(filePath))
+                        {
+                            Console.WriteLine($"File {filePath} does not exist.");
+                            break;
+                        }
+
+                        fs = File.OpenRead(filePath);
+                        if (_binaryFormatter.Deserialize(fs) is SuperList<Book> booksFromBinary)
+                            _books = booksFromBinary;
+                        fs.Close();
+                        break;
+                    case 4:
+                        // Skip load savings phase
+                        break;
+                }
+            } while (choice < 1 || choice > 4);
+
+            if (choice != 4)
+            {
+                Console.Write("Finish loading savings data. Press any key to continue.");
+                Console.ReadLine();
+            }
+
+            // Assigning events handlers
+            _books.OnAdd += Book_OnAdd;
+            _books.OnMutate += Book_OnMutate;
+
+            // Run core program
+            while (true)
+            {
+                Console.Clear();
+                PrintState();
+                Console.WriteLine("---------");
+                PrintMainMenu();
+                choice = GetChoice();
+                switch (choice)
+                {
+                    case 1:
+                        Console.WriteLine(_books);
                         Console.WriteLine("----------------");
                         Console.Write("Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 2:
-                        bool isContinue = false;
-                        SuperList<Book> newBooks = new SuperList<Book>();
+                        bool isContinue;
+                        var newBooks = new SuperList<Book>();
                         do
                         {
                             Console.WriteLine("------------------------");
@@ -181,45 +282,65 @@ Price: {Price}$.
                             Console.Write("New book added successfully.");
                             Console.WriteLine("Do you want to continue adding new book? (Y): Yes; (N): No;");
                             Console.Write("Your choice: ");
-                            isContinue = Console.ReadLine().Trim().ToUpper() == "Y";
+                            isContinue = Console.ReadLine()?.Trim().ToUpper() == "Y";
                         } while (isContinue);
 
-                        Books += newBooks;
+                        _books += newBooks;
                         Console.Write("Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 3:
                         Console.WriteLine("----------");
-                        if (Books.Count == 0)
+                        if (_books.Count == 0)
                             Console.Write("Cannot copy since books list is empty. Press any key to continue.");
                         else
                         {
-                            Books++;
+                            _books++;
                             Console.Write("New book added successfully. Press any key to continue.");
                         }
+
                         Console.ReadLine();
                         break;
                     case 4:
-                        Books.BubbleSort(AscendingSort);
+                        _books.BubbleSort(AscendingSort);
                         Console.WriteLine("Books are ascending sorted by Price. Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 5:
-                        Books.BubbleSort(DescendingSort);
+                        _books.BubbleSort(DescendingSort);
                         Console.WriteLine("Books are ascending sorted by Price. Press any key to continue.");
                         Console.ReadLine();
                         break;
                     case 6:
+                        string serialized = JsonSerializer.Serialize(_books);
+                        File.WriteAllText($"{_currentDir}\\{_fileName}.json", serialized);
+                        Console.WriteLine("Books are saved in `books.json`. Press any key to continue.");
+                        Console.ReadLine();
+                        break;
+                    case 7:
+                        fs = File.OpenWrite($"{_currentDir}\\{_fileName}.xml");
+                        _xmlSerializer.Serialize(fs, _books);
+                        Console.WriteLine("Books are saved in `books.xml`. Press any key to continue.");
+                        Console.ReadLine();
+                        break;
+                    case 8:
+                        fs = File.OpenWrite($"{_currentDir}\\{_fileName}.bin");
+                        _binaryFormatter.Serialize(fs, _books);
+                        Console.WriteLine("Books are saved in `books.bin`. Press any key to continue.");
+                        Console.ReadLine();
+                        break;
+                    case 9:
                         Console.WriteLine("Are you sure? (Y): Yes; (N): No;");
                         Console.Write("Enter: ");
-                        if (Console.ReadLine().Trim().ToUpper() == "Y") break;
+                        if (Console.ReadLine()?.Trim().ToUpper() == "Y") break;
                         continue;
                     default:
                         Console.WriteLine("Unknown option, please try again.");
                         Console.ReadLine();
                         break;
                 }
-                if (choice == 6) break;
+
+                if (choice == 9) break;
             }
         }
 
@@ -229,11 +350,11 @@ Price: {Price}$.
 
         void PrintState()
         {
-            Console.WriteLine($"Current State: {CurrentState.ToString().Replace('_', ' ')}");
-            Console.WriteLine($"Last edit is: {LastMutation?.ToString() ?? "NULL"}");
+            Console.WriteLine($"Current State: {_currentState.ToString().Replace('_', ' ')}");
+            Console.WriteLine($"Last edit is: {_lastMutation?.ToString() ?? "NULL"}");
         }
 
-        void PrintMenu()
+        void PrintMainMenu()
         {
             Console.WriteLine(@"
 1) Print Books
@@ -241,7 +362,20 @@ Price: {Price}$.
 3) Copy Last Book
 4) Ascending Sort
 5) Descending Sort
-6) Exit
+6) Save as JSON
+7) Save as XML
+8) Save as Binary
+9) Exit
+");
+        }
+
+        void PrintLoadMain()
+        {
+            Console.WriteLine(@"
+1) From JSON
+2) From XML
+3) From Binary
+4) Skip
 ");
         }
 
@@ -256,8 +390,8 @@ Price: {Price}$.
         }
     }
 
-    class Program
+    public static class Program
     {
-        static void Main(string[] args) => (new BookManager()).Run();
+        static void Main() => new BookManager().Run();
     }
 }
