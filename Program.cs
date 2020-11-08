@@ -95,7 +95,7 @@ namespace DotnetExercises
     }
 
     [Serializable]
-    public class Book : IComparable<Book>, IComparer<Book>
+    public class OldBook : IComparable<OldBook>, IComparer<OldBook>
     {
         public string Title { get; set; }
 
@@ -105,11 +105,11 @@ namespace DotnetExercises
 
         public int Price { get; set; }
 
-        public Book()
+        public OldBook()
         {
         }
 
-        public Book(string title, string author, string publisher, int price)
+        public OldBook(string title, string author, string publisher, int price)
         {
             Title = title;
             Author = author;
@@ -117,7 +117,7 @@ namespace DotnetExercises
             Price = price;
         }
 
-        public static Book Create()
+        public static OldBook Create()
         {
             string title, author, publisher;
             int price;
@@ -132,12 +132,12 @@ namespace DotnetExercises
 
             while (!int.TryParse(Console.ReadLine(), out price))
                 Console.Write("Invalid Price value. Please re-enter new number: ");
-            return new Book(title, author, publisher, price);
+            return new OldBook(title, author, publisher, price);
         }
 
-        public static bool operator >(Book a, Book b) => a.CompareTo(b) > 0;
+        public static bool operator >(OldBook a, OldBook b) => a.CompareTo(b) > 0;
 
-        public static bool operator <(Book a, Book b) => a.CompareTo(b) < 0;
+        public static bool operator <(OldBook a, OldBook b) => a.CompareTo(b) < 0;
 
         public override string ToString() => $@"
 Title: {Title},
@@ -146,20 +146,20 @@ Publisher: {Publisher},
 Price: {$"{Price:n0}"}$.
 ";
 
-        public int CompareTo(Book other) => Price.CompareTo(other.Price);
+        public int CompareTo(OldBook other) => Price.CompareTo(other.Price);
 
-        public int Compare(Book x, Book y) => x.CompareTo(y);
+        public int Compare(OldBook x, OldBook y) => x.CompareTo(y);
     }
 
     class BookManager
     {
-        private SuperList<Book> _books = new SuperList<Book>();
+        private SuperList<OldBook> _books = new SuperList<OldBook>();
 
         private State _currentState = State.OutOfStock;
 
         private DateTime? _lastMutation;
 
-        private readonly XmlSerializer _xmlSerializer = new XmlSerializer(typeof(SuperList<Book>));
+        private readonly XmlSerializer _xmlSerializer = new XmlSerializer(typeof(SuperList<OldBook>));
 
         private readonly IFormatter _binaryFormatter = new BinaryFormatter();
 
@@ -179,7 +179,7 @@ Price: {$"{Price:n0}"}$.
 
         void Book_OnAdd(object sender, EventArgs args)
         {
-            var manager = sender as SuperList<Book>;
+            var manager = sender as SuperList<OldBook>;
             int count = manager?.Count ?? 0;
 
             if (count > 10) _currentState = State.InStock;
@@ -210,7 +210,7 @@ Price: {$"{Price:n0}"}$.
                         }
 
                         var jsonUtf8Reader = new Utf8JsonReader(File.ReadAllBytes(filePath));
-                        _books = JsonSerializer.Deserialize<SuperList<Book>>(ref jsonUtf8Reader, _serializerOptions);
+                        _books = JsonSerializer.Deserialize<SuperList<OldBook>>(ref jsonUtf8Reader, _serializerOptions);
                         break;
                     case 2:
                         filePath = $"{_currentDir}\\{_fileName}.xml";
@@ -221,7 +221,7 @@ Price: {$"{Price:n0}"}$.
                         }
 
                         fs = File.OpenRead(filePath);
-                        if (_xmlSerializer.Deserialize(fs) is SuperList<Book> booksFromXml)
+                        if (_xmlSerializer.Deserialize(fs) is SuperList<OldBook> booksFromXml)
                             _books = booksFromXml;
                         fs.Close();
                         break;
@@ -234,8 +234,8 @@ Price: {$"{Price:n0}"}$.
                         }
 
                         fs = File.OpenRead(filePath);
-                        if (_binaryFormatter.Deserialize(fs) is Book[] booksFromBinary)
-                            _books = new SuperList<Book>(booksFromBinary);
+                        if (_binaryFormatter.Deserialize(fs) is OldBook[] booksFromBinary)
+                            _books = new SuperList<OldBook>(booksFromBinary);
                         fs.Close();
                         break;
                     case 4:
@@ -272,12 +272,12 @@ Price: {$"{Price:n0}"}$.
                         break;
                     case 2:
                         bool isContinue;
-                        var newBooks = new SuperList<Book>();
+                        var newBooks = new SuperList<OldBook>();
                         do
                         {
                             Console.WriteLine("------------------------");
                             Console.WriteLine("Please enter book info.");
-                            newBooks.Add(Book.Create());
+                            newBooks.Add(OldBook.Create());
                             Console.WriteLine("----------");
                             Console.Write("New book added successfully.");
                             Console.WriteLine("Do you want to continue adding new book? (Y): Yes; (N): No;");
@@ -344,9 +344,9 @@ Price: {$"{Price:n0}"}$.
             }
         }
 
-        bool AscendingSort(Book a, Book b) => a > b;
+        bool AscendingSort(OldBook a, OldBook b) => a > b;
 
-        bool DescendingSort(Book a, Book b) => a < b;
+        bool DescendingSort(OldBook a, OldBook b) => a < b;
 
         void PrintState()
         {
