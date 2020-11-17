@@ -392,6 +392,7 @@ Price: {$"{Price:n0}"}$.
 
     public static class Program
     {
-        static void Main() => new BookManager().Run();
+        // static void Main() => new BookManager().Run();
+        static void Main() => new Week9().Run();
     }
 }
